@@ -30,3 +30,4 @@
 /Users/bende/Desktop/5.felev/grafika/lab1/fel1/obj/Debug/net10.0/fel1.pdb
 /Users/bende/Desktop/5.felev/grafika/lab1/fel1/obj/Debug/net10.0/fel1.genruntimeconfig.cache
 /Users/bende/Desktop/5.felev/grafika/lab1/fel1/obj/Debug/net10.0/ref/fel1.dll
+/Users/bende/Desktop/5.felev/grafika/lab1/fel1/obj/Debug/net10.0/fel1.sourcelink.json
