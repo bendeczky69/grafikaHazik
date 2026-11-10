@@ -15,13 +15,31 @@ namespace lab2
         {
             public uint Vao;
             public Vector3D<float> Position;
+            public int LogicalX;
         }
+
+        private static IKeyboard primaryKeyboard;
+
+        // camera navigacios valtozok
+        private static Vector3D<float> cameraPos = new Vector3D<float>(4f, 3.5f, 5f);
+        private static Vector3D<float> cameraFront = new Vector3D<float>(-0.6f, -0.4f, -0.7f);
+        private static Vector3D<float> cameraUp = Vector3D<float>.UnitY;
+        private static float yaw = -128.0f;
+        private static float pitch = -30.0f;
+
+        // animacios valtozok
+        private static bool isAnimating = false;
+        private static float currentAngle = 0f;
+        private static float targetAngle = 0f;
+        private static float animationSpeed = (float)Math.PI;
 
         private static List<SmallCubeData> rubikCubes = new List<SmallCubeData>();
 
         private const string ModelMatrixVariableName = "uModel";
         private const string ViewMatrixVariableName = "uView";
         private const string ProjectionMatrixVariableName = "uProjection";
+
+        private const string SliceMatrixVariableName = "uSliceRotation";
 
         private static readonly string VertexShaderSource = @"
         #version 330 core
@@ -31,13 +49,14 @@ namespace lab2
         uniform mat4 uModel;
         uniform mat4 uView;
         uniform mat4 uProjection;
+        uniform mat4 uSliceRotation;
 
         out vec4 outCol;
         
         void main()
         {
             outCol = vCol;
-            gl_Position = uProjection*uView*uModel*vec4(vPos.x, vPos.y, vPos.z, 1.0);
+            gl_Position = uProjection*uView*uSliceRotation*uModel*vec4(vPos.x, vPos.y, vPos.z, 1.0);
         }
         ";
 
@@ -58,7 +77,7 @@ namespace lab2
         static void Main(string[] args)
         {
             WindowOptions windowOptions = WindowOptions.Default;
-            windowOptions.Title = "Lab2_1 Rubik Kocka";
+            windowOptions.Title = "Lab2_2 Rubik Kocka";
             windowOptions.Size = new Vector2D<int>(800, 800);
 
             graphicWindow = Window.Create(windowOptions);
@@ -112,6 +131,14 @@ namespace lab2
 
         private static unsafe void GraphicWindow_Load()
         {
+            IInputContext input = graphicWindow.CreateInput();
+            primaryKeyboard = input.Keyboards.FirstOrDefault();
+            
+            if (primaryKeyboard != null)
+            {
+                primaryKeyboard.KeyDown += Keyboard_KeyDown;
+            }
+
             Gl = graphicWindow.CreateOpenGL();
             Gl.ClearColor(System.Drawing.Color.LightGray);
             
@@ -203,7 +230,8 @@ namespace lab2
                         rubikCubes.Add(new SmallCubeData 
                         { 
                             Vao = vao, 
-                            Position = new Vector3D<float>(x * offset, y * offset, z * offset) 
+                            Position = new Vector3D<float>(x * offset, y * offset, z * offset),
+                            LogicalX = x
                         });
                     }
                 }
@@ -213,20 +241,68 @@ namespace lab2
             Gl.UseProgram(program);
             
             // erdekes szog
-            var viewMatrix = Matrix4X4.CreateLookAt(new Vector3D<float>(4f, 3.5f, 5f), Vector3D<float>.Zero, Vector3D<float>.UnitY);
-            SetMatrix(viewMatrix, ViewMatrixVariableName);
-
             var projectionMatrix = Matrix4X4.CreatePerspectiveFieldOfView<float>((float)(Math.PI / 4), 800f / 800f, 0.1f, 100f);
             SetMatrix(projectionMatrix, ProjectionMatrixVariableName);
         }
 
         private static void Keyboard_KeyDown(IKeyboard keyboard, Key key, int arg3)
         {
-            
+            if (!isAnimating)
+            {
+                if (key == Key.Space)
+                {
+                    targetAngle += (float)(Math.PI / 2); // +90 fok
+                    isAnimating = true;
+                }
+                else if (key == Key.Backspace)
+                {
+                    targetAngle -= (float)(Math.PI / 2); // -90 fok
+                    isAnimating = true;
+                }
+            }
         }
 
         private static void GraphicWindow_Update(double deltaTime)
         {
+            if (primaryKeyboard == null) return;
+
+            // Kamera navigáció (Mozgás)
+            float cameraSpeed = 3.5f * (float)deltaTime;
+            if (primaryKeyboard.IsKeyPressed(Key.Up)) cameraPos += cameraFront * cameraSpeed;
+            if (primaryKeyboard.IsKeyPressed(Key.Down)) cameraPos -= cameraFront * cameraSpeed;
+            if (primaryKeyboard.IsKeyPressed(Key.Left)) cameraPos -= Vector3D.Normalize(Vector3D.Cross(cameraFront, cameraUp)) * cameraSpeed;
+            if (primaryKeyboard.IsKeyPressed(Key.Right)) cameraPos += Vector3D.Normalize(Vector3D.Cross(cameraFront, cameraUp)) * cameraSpeed;
+
+            // Kamera navigáció (Forgás)
+            float turnSpeed = 60f * (float)deltaTime;
+            if (primaryKeyboard.IsKeyPressed(Key.A)) yaw -= turnSpeed;
+            if (primaryKeyboard.IsKeyPressed(Key.D)) yaw += turnSpeed;
+            if (primaryKeyboard.IsKeyPressed(Key.W)) pitch += turnSpeed;
+            if (primaryKeyboard.IsKeyPressed(Key.S)) pitch -= turnSpeed;
+
+            if (pitch > 89.0f) pitch = 89.0f;
+            if (pitch < -89.0f) pitch = -89.0f;
+
+            // Front vektor frissítése a Yaw és Pitch alapján
+            cameraFront.X = (float)(Math.Cos(yaw * Math.PI / 180.0) * Math.Cos(pitch * Math.PI / 180.0));
+            cameraFront.Y = (float)Math.Sin(pitch * Math.PI / 180.0);
+            cameraFront.Z = (float)(Math.Sin(yaw * Math.PI / 180.0) * Math.Cos(pitch * Math.PI / 180.0));
+            cameraFront = Vector3D.Normalize(cameraFront);
+
+            // Szelet animációjának frissítése
+            if (isAnimating)
+            {
+                if (currentAngle < targetAngle)
+                {
+                    currentAngle += animationSpeed * (float)deltaTime;
+                    if (currentAngle >= targetAngle) { currentAngle = targetAngle; isAnimating = false; }
+                }
+                else if (currentAngle > targetAngle)
+                {
+                    currentAngle -= animationSpeed * (float)deltaTime;
+                    if (currentAngle <= targetAngle) { currentAngle = targetAngle; isAnimating = false; }
+                }
+            }
         }
 
         private static unsafe void GraphicWindow_Render(double deltaTime)
@@ -234,16 +310,27 @@ namespace lab2
             Gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             Gl.UseProgram(program);
 
+            var viewMatrix = Matrix4X4.CreateLookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+            SetMatrix(viewMatrix, ViewMatrixVariableName);
+
             foreach (var cube in rubikCubes)
             {
                 var modelMatrix = Matrix4X4.CreateTranslation(cube.Position);
                 SetMatrix(modelMatrix, ModelMatrixVariableName);
 
+                Matrix4X4<float> sliceMatrix = Matrix4X4<float>.Identity;
+                if (cube.LogicalX == 1)
+                {
+                    sliceMatrix = Matrix4X4.CreateRotationX(currentAngle);
+                }
+
+                SetMatrix(sliceMatrix, SliceMatrixVariableName);
+
                 Gl.BindVertexArray(cube.Vao);
                 Gl.DrawElements(PrimitiveType.Triangles, 36, DrawElementsType.UnsignedInt, null);
             }
             Gl.BindVertexArray(0);
-        }
+}
 
         private static unsafe void SetMatrix(Matrix4X4<float> mx, string uniformName)
         {
