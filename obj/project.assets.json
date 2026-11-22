@@ -409,11 +409,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/bende/Desktop/5.felev/grafika/lab1/fel1/fel1.csproj",
+      "projectUniqueName": "/Users/bende/Desktop/5.felev/grafika/grafikaHazik/fel1.csproj",
       "projectName": "fel1",
-      "projectPath": "/Users/bende/Desktop/5.felev/grafika/lab1/fel1/fel1.csproj",
+      "projectPath": "/Users/bende/Desktop/5.felev/grafika/grafikaHazik/fel1.csproj",
       "packagesPath": "/Users/bende/.nuget/packages/",
-      "outputPath": "/Users/bende/Desktop/5.felev/grafika/lab1/fel1/obj/",
+      "outputPath": "/Users/bende/Desktop/5.felev/grafika/grafikaHazik/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/Users/bende/.nuget/NuGet/NuGet.Config"

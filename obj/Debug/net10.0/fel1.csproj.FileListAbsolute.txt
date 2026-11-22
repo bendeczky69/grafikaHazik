@@ -31,3 +31,12 @@
 /Users/bende/Desktop/5.felev/grafika/lab1/fel1/obj/Debug/net10.0/fel1.genruntimeconfig.cache
 /Users/bende/Desktop/5.felev/grafika/lab1/fel1/obj/Debug/net10.0/ref/fel1.dll
 /Users/bende/Desktop/5.felev/grafika/lab1/fel1/obj/Debug/net10.0/fel1.sourcelink.json
+/Users/bende/Desktop/5.felev/grafika/grafikaHazik/obj/Debug/net10.0/fel1.csproj.AssemblyReference.cache
+/Users/bende/Desktop/5.felev/grafika/grafikaHazik/obj/Debug/net10.0/fel1.GeneratedMSBuildEditorConfig.editorconfig
+/Users/bende/Desktop/5.felev/grafika/grafikaHazik/obj/Debug/net10.0/fel1.AssemblyInfoInputs.cache
+/Users/bende/Desktop/5.felev/grafika/grafikaHazik/obj/Debug/net10.0/fel1.AssemblyInfo.cs
+/Users/bende/Desktop/5.felev/grafika/grafikaHazik/obj/Debug/net10.0/fel1.csproj.CoreCompileInputs.cache
+/Users/bende/Desktop/5.felev/grafika/grafikaHazik/obj/Debug/net10.0/fel1.sourcelink.json
+/Users/bende/Desktop/5.felev/grafika/grafikaHazik/obj/Debug/net10.0/fel1.dll
+/Users/bende/Desktop/5.felev/grafika/grafikaHazik/obj/Debug/net10.0/refint/fel1.dll
+/Users/bende/Desktop/5.felev/grafika/grafikaHazik/obj/Debug/net10.0/fel1.pdb
