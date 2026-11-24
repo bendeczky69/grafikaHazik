@@ -7,28 +7,36 @@ uniform vec3 uViewPos;
 
 uniform float uShininess;
 
-		
+// harom elemu vektorokkent megadott phong egyutthatok
+uniform vec3 uAmbientStrength;
+uniform vec3 uDiffuseStrength;
+uniform vec3 uSpecularStrength;
+
 in vec4 outCol;
 in vec3 outNormal;
 in vec3 outWorldPosition;
 
 void main()
 {
-    float ambientStrength = 0.1;
-    vec3 ambient = ambientStrength * uLightColor;
-
-    float diffuseStrength = 0.3;
+    // normalizalas a vilagkoordinata rendszerben
     vec3 norm = normalize(outNormal);
     vec3 lightDir = normalize(uLightPos - outWorldPosition);
-    float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = diff * uLightColor * diffuseStrength;
-
-    float specularStrength = 0.6;
     vec3 viewDir = normalize(uViewPos - outWorldPosition);
     vec3 reflectDir = reflect(-lightDir, norm);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), uShininess);
 
-    vec3 result = (ambient + diffuse + spec) * outCol.rgb;
+    // kornyezeti feny szamitasa komponensenkent
+    vec3 ambient = uAmbientStrength * uLightColor;
+
+    // diffuz feny szamitasa komponensenkent
+    float diff = max(dot(norm, lightDir), 0.0);
+    vec3 diffuse = diff * uDiffuseStrength * uLightColor;
+
+    // spekularis csillogas szamitasa komponensenkent
+    float specFactor = pow(max(dot(viewDir, reflectDir), 0.0), uShininess);
+    vec3 specular = specFactor * uSpecularStrength * uLightColor;
+
+    // osszesitett phong megvilagitas szorzasa az objektum csucsszinevel
+    vec3 result = (ambient + diffuse + specular) * outCol.rgb;
 
     FragColor = vec4(result, outCol.w);
 }

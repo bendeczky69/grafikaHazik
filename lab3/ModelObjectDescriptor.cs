@@ -13,78 +13,127 @@ namespace GrafikaSzeminarium
         public uint Colors { get; private set; }
         public uint Indices { get; private set; }
         public uint IndexArrayLength { get; private set; }
+        private float[] colorArray = Array.Empty<float>();
+        private GL Gl = null!;
 
-        private GL Gl;
-
-        public unsafe static ModelObjectDescriptor CreateBarrelPlank(GL Gl, bool flatNormals, float width = 1.0f, float height = 2.0f, int plankCount = 18)
+        public unsafe static ModelObjectDescriptor CreateCube(GL Gl)
         {
             uint vao = Gl.GenVertexArray();
             Gl.BindVertexArray(vao);
 
-            float halfW = width * 0.5f;
-            float halfH = height * 0.5f;
+            float[] vertexArray = new float[] {
+                // felso lap 0->3
+                -0.5f, 0.5f, 0.5f, 0f, 1f, 0f,
+                 0.5f, 0.5f, 0.5f, 0f, 1f, 0f,
+                 0.5f, 0.5f, -0.5f, 0f, 1f, 0f,
+                -0.5f, 0.5f, -0.5f, 0f, 1f, 0f,
 
-            // A fél lépésszög (360 / (2 * 18) = 10 fok) radiánban
-            float halfAngleRad = MathF.PI / 180.0f * (180.0f / plankCount);
-            float outX = MathF.Sin(halfAngleRad);
-            float outZ = MathF.Cos(halfAngleRad);
+                // elso lap
+                -0.5f, 0.5f, 0.5f, 0f, 0f, 1f,
+                -0.5f, -0.5f, 0.5f, 0f, 0f, 1f,
+                 0.5f, -0.5f, 0.5f, 0f, 0f, 1f,
+                 0.5f, 0.5f, 0.5f, 0f, 0f, 1f,
 
-            Vector3 leftNormal = flatNormals
-                ? new Vector3(0f, 0f, 1f)
-                : new Vector3(-outX, 0f, outZ);
+                // bal oldali lap
+                -0.5f, 0.5f, 0.5f, -1f, 0f, 0f,
+                -0.5f, 0.5f, -0.5f, -1f, 0f, 0f,
+                -0.5f, -0.5f, -0.5f, -1f, 0f, 0f,
+                -0.5f, -0.5f, 0.5f, -1f, 0f, 0f,
 
-            Vector3 rightNormal = flatNormals
-                ? new Vector3(0f, 0f, 1f)
-                : new Vector3(outX, 0f, outZ);
+                // also lap
+                -0.5f, -0.5f, 0.5f, 0f, -1f, 0f,
+                 0.5f, -0.5f, 0.5f, 0f, -1f, 0f,
+                 0.5f, -0.5f, -0.5f, 0f, -1f, 0f,
+                -0.5f, -0.5f, -0.5f, 0f, -1f, 0f,
 
-            // 4 csucs pozicio
-            float[] vertexArray = new float[]
-            {
-                -halfW, -halfH, 0f,  leftNormal.X,  leftNormal.Y,  leftNormal.Z,
-                -halfW,  halfH, 0f,  leftNormal.X,  leftNormal.Y,  leftNormal.Z,
-                 halfW,  halfH, 0f,  rightNormal.X, rightNormal.Y, rightNormal.Z,
-                 halfW, -halfH, 0f,  rightNormal.X, rightNormal.Y, rightNormal.Z,
+                // hatso lap
+                 0.5f, 0.5f, -0.5f, 0f, 0f, -1f,
+                -0.5f, 0.5f, -0.5f, 0f, 0f, -1f,
+                -0.5f, -0.5f, -0.5f, 0f, 0f, -1f,
+                 0.5f, -0.5f, -0.5f, 0f, 0f, -1f,
+
+                // jobb oldali lap
+                 0.5f, 0.5f, 0.5f, 1f, 0f, 0f,
+                 0.5f, 0.5f, -0.5f, 1f, 0f, 0f,
+                 0.5f, -0.5f, -0.5f, 1f, 0f, 0f,
+                 0.5f, -0.5f, 0.5f, 1f, 0f, 0f,
             };
 
-            float[] colorArray = new float[]
-            {
-                0.78f, 0.52f, 0.27f, 1.0f,
-                0.78f, 0.52f, 0.27f, 1.0f,
-                0.78f, 0.52f, 0.27f, 1.0f,
-                0.78f, 0.52f, 0.27f, 1.0f,
+            float[] cubeColors = new float[] {
+                1.0f, 0.0f, 0.0f, 1.0f,
+                1.0f, 0.0f, 0.0f, 1.0f,
+                1.0f, 0.0f, 0.0f, 1.0f,
+                1.0f, 0.0f, 0.0f, 1.0f,
+
+                0.0f, 1.0f, 0.0f, 1.0f,
+                0.0f, 1.0f, 0.0f, 1.0f,
+                0.0f, 1.0f, 0.0f, 1.0f,
+                0.0f, 1.0f, 0.0f, 1.0f,
+
+                0.0f, 0.0f, 1.0f, 1.0f,
+                0.0f, 0.0f, 1.0f, 1.0f,
+                0.0f, 0.0f, 1.0f, 1.0f,
+                0.0f, 0.0f, 1.0f, 1.0f,
+
+                1.0f, 0.0f, 1.0f, 1.0f,
+                1.0f, 0.0f, 1.0f, 1.0f,
+                1.0f, 0.0f, 1.0f, 1.0f,
+                1.0f, 0.0f, 1.0f, 1.0f,
+
+                0.0f, 1.0f, 1.0f, 1.0f,
+                0.0f, 1.0f, 1.0f, 1.0f,
+                0.0f, 1.0f, 1.0f, 1.0f,
+                0.0f, 1.0f, 1.0f, 1.0f,
+
+                1.0f, 1.0f, 0.0f, 1.0f,
+                1.0f, 1.0f, 0.0f, 1.0f,
+                1.0f, 1.0f, 0.0f, 1.0f,
+                1.0f, 1.0f, 0.0f, 1.0f,
             };
 
-            uint[] indexArray = new uint[]
-            {
-                0, 3, 2,
-                0, 2, 1
+            uint[] indexArray = new uint[] {
+                0, 1, 2,
+                0, 2, 3,
+
+                4, 5, 6,
+                4, 6, 7,
+
+                8, 9, 10,
+                10, 11, 8,
+
+                12, 14, 13,
+                12, 15, 14,
+
+                17, 16, 19,
+                17, 19, 18,
+
+                20, 22, 21,
+                20, 23, 22
             };
 
+            // pozicio es normalis buffer feltoltese es attributumok beallitasa (0 = pozicio, 2 = normalis)
             uint vertices = Gl.GenBuffer();
             Gl.BindBuffer(GLEnum.ArrayBuffer, vertices);
             Gl.BufferData(GLEnum.ArrayBuffer, (ReadOnlySpan<float>)vertexArray.AsSpan(), GLEnum.StaticDraw);
 
             uint offsetPos = 0;
-            uint offsetNormals = 3 * sizeof(float);
-            uint vertexSize = 6 * sizeof(float);
-
-            // 0 = position, 2 = normal (a VertexShader.vert alapján)
+            uint offsetNormals = offsetPos + 3 * sizeof(float);
+            uint vertexSize = offsetNormals + 3 * sizeof(float);
             Gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, vertexSize, (void*)offsetPos);
             Gl.EnableVertexAttribArray(0);
-
             Gl.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, true, vertexSize, (void*)offsetNormals);
             Gl.EnableVertexAttribArray(2);
             Gl.BindBuffer(GLEnum.ArrayBuffer, 0);
 
+            // szin buffer feltoltese es attributum beallitasa (1 = szin)
             uint colors = Gl.GenBuffer();
             Gl.BindBuffer(GLEnum.ArrayBuffer, colors);
-            Gl.BufferData(GLEnum.ArrayBuffer, (ReadOnlySpan<float>)colorArray.AsSpan(), GLEnum.StaticDraw);
-
-            // 1 = color
+            Gl.BufferData(GLEnum.ArrayBuffer, (ReadOnlySpan<float>)cubeColors.AsSpan(), GLEnum.StaticDraw);
             Gl.VertexAttribPointer(1, 4, VertexAttribPointerType.Float, false, 0, null);
             Gl.EnableVertexAttribArray(1);
             Gl.BindBuffer(GLEnum.ArrayBuffer, 0);
 
+            // index buffer feltoltese
             uint indices = Gl.GenBuffer();
             Gl.BindBuffer(GLEnum.ElementArrayBuffer, indices);
             Gl.BufferData(GLEnum.ElementArrayBuffer, (ReadOnlySpan<uint>)indexArray.AsSpan(), GLEnum.StaticDraw);
@@ -99,8 +148,33 @@ namespace GrafikaSzeminarium
                 Colors = colors,
                 Indices = indices,
                 IndexArrayLength = (uint)indexArray.Length,
+                colorArray = cubeColors,
                 Gl = Gl
             };
+        }
+
+        // frissiti a kocka felso oldalanak 4 csucsszinet a gpu bufferben
+        public unsafe void UpdateTopFaceColor(Vector3 rgb)
+        {
+            if (colorArray.Length < 16 || Colors == 0)
+                return;
+
+            for (int v = 0; v < 4; v++)
+            {
+                int idx = v * 4;
+                colorArray[idx + 0] = rgb.X;
+                colorArray[idx + 1] = rgb.Y;
+                colorArray[idx + 2] = rgb.Z;
+                colorArray[idx + 3] = 1.0f;
+            }
+
+            // csak a modositott szinadatokat kuldjuk at a gpu-ra
+            Gl.BindBuffer(GLEnum.ArrayBuffer, Colors);
+            fixed (float* ptr = colorArray)
+            {
+                Gl.BufferSubData(GLEnum.ArrayBuffer, 0, (nuint)(16 * sizeof(float)), ptr);
+            }
+            Gl.BindBuffer(GLEnum.ArrayBuffer, 0);
         }
 
         protected virtual void Dispose(bool disposing)

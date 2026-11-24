@@ -13,19 +13,13 @@ namespace GrafikaSzeminarium
 {
     internal class Program
     {
-        private static IWindow graphicWindow;
-        private static GL Gl;
-        private static ImGuiController imGuiController;
+        private static IWindow graphicWindow = null!;
+        private static GL Gl = null!;
+        private static ImGuiController imGuiController = null!;
 
-        private static ModelObjectDescriptor barrelPlankFlat;
-        private static ModelObjectDescriptor barrelPlankCurved;
-
+        private static ModelObjectDescriptor cube = null!;
         private static CameraDescriptor camera = new CameraDescriptor();
         private static CubeArrangementModel cubeArrangementModel = new CubeArrangementModel();
-
-        private const int PlankCount = 18;
-        private const float PlankWidth = 1.0f;
-        private const float PlankHeight = 2.0f;
 
         private const string ModelMatrixVariableName = "uModel";
         private const string NormalMatrixVariableName = "uNormal";
@@ -37,14 +31,38 @@ namespace GrafikaSzeminarium
         private const string ViewPositionVariableName = "uViewPos";
         private const string ShinenessVariableName = "uShininess";
 
+        private const string AmbientStrengthVariableName = "uAmbientStrength";
+        private const string DiffuseStrengthVariableName = "uDiffuseStrength";
+        private const string SpecularStrengthVariableName = "uSpecularStrength";
+
         private static float shininess = 50f;
+        private static Vector3 lightColor = new Vector3(1f, 1f, 1f);
+        private static Vector3 ambientStrength = new Vector3(0.15f, 0.15f, 0.15f);
+        private static Vector3 diffuseStrength = new Vector3(0.6f, 0.6f, 0.6f);
+        private static Vector3 specularStrength = new Vector3(0.6f, 0.6f, 0.6f);
+
+        private static Vector3 topFaceColor = new Vector3(1f, 0f, 0f);
+        private static Vector3 lastTopFaceColor = new Vector3(1f, 0f, 0f);
+
+        private static int selectedPresetIndex = 0;
+        private static readonly string[] MaterialPresets =
+        {
+            "Custom / Default",
+            "Brass",
+            "Bronze",
+            "Copper",
+            "Gold",
+            "Emerald",
+            "Ruby"
+        };
+
         private static uint program;
 
         static void Main(string[] args)
         {
             WindowOptions windowOptions = WindowOptions.Default;
-            windowOptions.Title = "Lab3_1";
-            windowOptions.Size = new Silk.NET.Maths.Vector2D<int>(900, 600);
+            windowOptions.Title = "Lab3_2";
+            windowOptions.Size = new Silk.NET.Maths.Vector2D<int>(900, 650);
 
             graphicWindow = Window.Create(windowOptions);
 
@@ -58,8 +76,7 @@ namespace GrafikaSzeminarium
 
         private static void GraphicWindow_Closing()
         {
-            barrelPlankFlat?.Dispose();
-            barrelPlankCurved?.Dispose();
+            cube?.Dispose();
             Gl.DeleteProgram(program);
         }
 
@@ -80,16 +97,15 @@ namespace GrafikaSzeminarium
 
             imGuiController = new ImGuiController(Gl, graphicWindow, inputContext);
 
-            barrelPlankFlat = ModelObjectDescriptor.CreateBarrelPlank(Gl, flatNormals: true, PlankWidth, PlankHeight, PlankCount);
-            barrelPlankCurved = ModelObjectDescriptor.CreateBarrelPlank(Gl, flatNormals: false, PlankWidth, PlankHeight, PlankCount);
+            cube = ModelObjectDescriptor.CreateCube(Gl);
 
-            for (int i = 0; i < 25; i++)
+            for (int i = 0; i < 12; i++)
             {
                 camera.IncreaseDistance();
             }
 
             Gl.ClearColor(System.Drawing.Color.White);
-            Gl.Disable(EnableCap.CullFace);
+            Gl.Enable(EnableCap.CullFace);
             Gl.CullFace(TriangleFace.Back);
             Gl.Enable(EnableCap.DepthTest);
             Gl.DepthFunc(DepthFunction.Lequal);
@@ -167,33 +183,60 @@ namespace GrafikaSzeminarium
         {
             cubeArrangementModel.AdvanceTime(deltaTime);
             imGuiController.Update((float)deltaTime);
-        }
 
-        // idealis Z eltolas: (szelesseg / 2) / tan(10 fok)
-        private static float ComputeIdealZOffset(float scale = 1.0f)
-        {
-            float halfWidth = (PlankWidth * scale) * 0.5f;
-            float tenDegRad = MathF.PI / 180.0f * (180.0f / PlankCount); // 10 fok
-            return halfWidth / MathF.Tan(tenDegRad);
-        }
-
-        private static void DrawBarrel(ModelObjectDescriptor plank, Vector3D<float> barrelCenter, float scale = 1.0f)
-        {
-            float zOffset = ComputeIdealZOffset(scale);
-            float stepRad = MathF.PI / 180.0f * (360.0f / PlankCount); // 20 fok
-
-            Matrix4X4<float> scaleMx = Matrix4X4.CreateScale(scale);
-            Matrix4X4<float> zShiftMx = Matrix4X4.CreateTranslation(0f, 0f, zOffset);
-            Matrix4X4<float> centerShiftMx = Matrix4X4.CreateTranslation(barrelCenter);
-
-            for (int i = 0; i < PlankCount; i++)
+            if (topFaceColor != lastTopFaceColor)
             {
-                float rotYRad = i * stepRad;
-                Matrix4X4<float> rotYMx = Matrix4X4.CreateRotationY(rotYRad);
+                cube.UpdateTopFaceColor(topFaceColor);
+                lastTopFaceColor = topFaceColor;
+            }
+        }
 
-                Matrix4X4<float> modelMatrix = scaleMx * zShiftMx * rotYMx * centerShiftMx;
-                SetModelMatrix(modelMatrix);
-                DrawModelObject(plank);
+        private static void ApplyMaterialPreset(int index)
+        {
+            switch (index)
+            {
+                case 0:
+                    ambientStrength = new Vector3(0.15f, 0.15f, 0.15f);
+                    diffuseStrength = new Vector3(0.6f, 0.6f, 0.6f);
+                    specularStrength = new Vector3(0.6f, 0.6f, 0.6f);
+                    shininess = 50f;
+                    break;
+                case 1: // Brass
+                    ambientStrength = new Vector3(0.329412f, 0.223529f, 0.027451f);
+                    diffuseStrength = new Vector3(0.780392f, 0.568627f, 0.113725f);
+                    specularStrength = new Vector3(0.992157f, 0.941176f, 0.807843f);
+                    shininess = 27.8974f;
+                    break;
+                case 2: // Bronze
+                    ambientStrength = new Vector3(0.2125f, 0.1275f, 0.054f);
+                    diffuseStrength = new Vector3(0.714f, 0.4284f, 0.18144f);
+                    specularStrength = new Vector3(0.393548f, 0.271906f, 0.166721f);
+                    shininess = 25.6f;
+                    break;
+                case 3: // Copper
+                    ambientStrength = new Vector3(0.19125f, 0.0735f, 0.0225f);
+                    diffuseStrength = new Vector3(0.7038f, 0.27048f, 0.0828f);
+                    specularStrength = new Vector3(0.256777f, 0.137622f, 0.086014f);
+                    shininess = 12.8f;
+                    break;
+                case 4: // Gold
+                    ambientStrength = new Vector3(0.24725f, 0.1995f, 0.0745f);
+                    diffuseStrength = new Vector3(0.75164f, 0.60648f, 0.22648f);
+                    specularStrength = new Vector3(0.628281f, 0.555802f, 0.366065f);
+                    shininess = 51.2f;
+                    break;
+                case 5: // Emerald
+                    ambientStrength = new Vector3(0.0215f, 0.1745f, 0.0215f);
+                    diffuseStrength = new Vector3(0.07568f, 0.61424f, 0.07568f);
+                    specularStrength = new Vector3(0.633f, 0.727811f, 0.633f);
+                    shininess = 76.8f;
+                    break;
+                case 6: // Ruby
+                    ambientStrength = new Vector3(0.1745f, 0.01175f, 0.01175f);
+                    diffuseStrength = new Vector3(0.61424f, 0.04136f, 0.04136f);
+                    specularStrength = new Vector3(0.727811f, 0.626959f, 0.626959f);
+                    shininess = 76.8f;
+                    break;
             }
         }
 
@@ -204,13 +247,14 @@ namespace GrafikaSzeminarium
 
             Gl.UseProgram(program);
 
-            Vector3 camPos = new Vector3(camera.Position.X, camera.Position.Y, camera.Position.Z);
-
-            SetUniform3(LightColorVariableName, new Vector3(1f, 1f, 1f));
-            // fenyforras
-            SetUniform3(LightPositionVariableName, camPos);
-            SetUniform3(ViewPositionVariableName, camPos);
+            SetUniform3(LightColorVariableName, lightColor);
+            SetUniform3(LightPositionVariableName, new Vector3(0f, 1.2f, 0f));
+            SetUniform3(ViewPositionVariableName, new Vector3(camera.Position.X, camera.Position.Y, camera.Position.Z));
             SetUniform1(ShinenessVariableName, shininess);
+
+            SetUniform3(AmbientStrengthVariableName, ambientStrength);
+            SetUniform3(DiffuseStrengthVariableName, diffuseStrength);
+            SetUniform3(SpecularStrengthVariableName, specularStrength);
 
             var viewMatrix = Matrix4X4.CreateLookAt(camera.Position, camera.Target, camera.UpVector);
             SetMatrix(viewMatrix, ViewMatrixVariableName);
@@ -221,11 +265,54 @@ namespace GrafikaSzeminarium
             var projectionMatrix = Matrix4X4.CreatePerspectiveFieldOfView<float>((float)(Math.PI / 2), aspect, 0.1f, 100f);
             SetMatrix(projectionMatrix, ProjectionMatrixVariableName);
 
-            DrawBarrel(barrelPlankFlat, new Vector3D<float>(-3.6f, 0f, 0f), scale: 1.0f);
-            DrawBarrel(barrelPlankCurved, new Vector3D<float>(3.6f, 0f, 0f), scale: 1.0f);
+            // Központi kocka
+            var modelMatrixCenterCube = Matrix4X4.CreateScale((float)cubeArrangementModel.CenterCubeScale);
+            SetModelMatrix(modelMatrixCenterCube);
+            DrawModelObject(cube);
 
-            ImGuiNET.ImGui.Begin("Lighting", ImGuiNET.ImGuiWindowFlags.AlwaysAutoResize | ImGuiNET.ImGuiWindowFlags.NoCollapse);
-            ImGuiNET.ImGui.SliderFloat("Shininess", ref shininess, 5, 100);
+            // Keringő / gyémánt kocka
+            Matrix4X4<float> diamondScale = Matrix4X4.CreateScale(0.25f);
+            Matrix4X4<float> rotx = Matrix4X4.CreateRotationX((float)Math.PI / 4f);
+            Matrix4X4<float> rotz = Matrix4X4.CreateRotationZ((float)Math.PI / 4f);
+            Matrix4X4<float> roty = Matrix4X4.CreateRotationY((float)cubeArrangementModel.DiamondCubeLocalAngle);
+            Matrix4X4<float> trans = Matrix4X4.CreateTranslation(1f, 1f, 0f);
+            Matrix4X4<float> rotGlobalY = Matrix4X4.CreateRotationY((float)cubeArrangementModel.DiamondCubeGlobalYAngle);
+            Matrix4X4<float> dimondCubeModelMatrix = diamondScale * rotx * rotz * roty * trans * rotGlobalY;
+            SetModelMatrix(dimondCubeModelMatrix);
+            DrawModelObject(cube);
+
+            ImGuiNET.ImGui.Begin("Lab3_2 Lighting & Material", ImGuiNET.ImGuiWindowFlags.AlwaysAutoResize | ImGuiNET.ImGuiWindowFlags.NoCollapse);
+
+            if (ImGuiNET.ImGui.Combo("Material Preset", ref selectedPresetIndex, MaterialPresets, MaterialPresets.Length))
+            {
+                ApplyMaterialPreset(selectedPresetIndex);
+            }
+
+            ImGuiNET.ImGui.SliderFloat("Shininess", ref shininess, 5f, 128f);
+
+            ImGuiNET.ImGui.SeparatorText("Light Color (3 sliders)");
+            ImGuiNET.ImGui.SliderFloat("Light R", ref lightColor.X, 0f, 1f);
+            ImGuiNET.ImGui.SliderFloat("Light G", ref lightColor.Y, 0f, 1f);
+            ImGuiNET.ImGui.SliderFloat("Light B", ref lightColor.Z, 0f, 1f);
+
+            ImGuiNET.ImGui.SeparatorText("Ambient Strength (3 sliders)");
+            ImGuiNET.ImGui.SliderFloat("Ambient R", ref ambientStrength.X, 0f, 1f);
+            ImGuiNET.ImGui.SliderFloat("Ambient G", ref ambientStrength.Y, 0f, 1f);
+            ImGuiNET.ImGui.SliderFloat("Ambient B", ref ambientStrength.Z, 0f, 1f);
+
+            ImGuiNET.ImGui.SeparatorText("Diffuse Strength (3 sliders)");
+            ImGuiNET.ImGui.SliderFloat("Diffuse R", ref diffuseStrength.X, 0f, 1f);
+            ImGuiNET.ImGui.SliderFloat("Diffuse G", ref diffuseStrength.Y, 0f, 1f);
+            ImGuiNET.ImGui.SliderFloat("Diffuse B", ref diffuseStrength.Z, 0f, 1f);
+
+            ImGuiNET.ImGui.SeparatorText("Specular Strength (3 sliders)");
+            ImGuiNET.ImGui.SliderFloat("Specular R", ref specularStrength.X, 0f, 1f);
+            ImGuiNET.ImGui.SliderFloat("Specular G", ref specularStrength.Y, 0f, 1f);
+            ImGuiNET.ImGui.SliderFloat("Specular B", ref specularStrength.Z, 0f, 1f);
+
+            ImGuiNET.ImGui.SeparatorText("Central Cube Face Color");
+            ImGuiNET.ImGui.ColorEdit3("Top Face Color", ref topFaceColor);
+
             ImGuiNET.ImGui.End();
 
             imGuiController.Render();
